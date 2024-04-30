@@ -1,0 +1,8 @@
+filter_cloud:
+  ros__parameters:
+    range_based_filtering:
+      active: True
+      range: 100.0
+    angle_based_filtering:
+      active: True
+      range: 10.0
