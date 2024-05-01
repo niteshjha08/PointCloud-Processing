@@ -23,9 +23,17 @@ def generate_launch_description():
          executable='preprocess_cloud_node',
          name='preprocess_cloud_node',
          parameters=[config_filter_node])
+    
+    plane_segmentation_node = Node(package='point_cloud_proc',
+         namespace='',
+         executable='plane_segmentation_node',
+         name='plane_segmentation_node',
+         parameters=[config_filter_node])
     ld = LaunchDescription()
 
     ld.add_action(filter_cloud_node)
+    ld.add_action(plane_segmentation_node)
+
 
 
     return ld

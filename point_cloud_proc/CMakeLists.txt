@@ -30,6 +30,11 @@ add_executable(preprocess_cloud_node src/preprocess_cloud.cpp)
 target_include_directories(preprocess_cloud_node PUBLIC
   include
 )
+
+add_executable(plane_segmentation_node src/plane_segmentation.cpp)
+target_include_directories(plane_segmentation_node PUBLIC
+  include
+)
 ament_target_dependencies(
   preprocess_cloud_node
   rclcpp
@@ -39,13 +44,24 @@ ament_target_dependencies(
   # pcl_ros
 )
 
+ament_target_dependencies(
+  plane_segmentation_node
+  rclcpp
+  sensor_msgs
+  pcl_conversions
+  PCL
+  # pcl_ros
+)
+
 install(
   TARGETS
-  preprocess_cloud_node
+  preprocess_cloud_node plane_segmentation_node
   DESTINATION
     lib/${PROJECT_NAME}
   )
 target_link_libraries(preprocess_cloud_node ${PCL_LIBRARIES})
+target_link_libraries(plane_segmentation_node ${PCL_LIBRARIES})
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

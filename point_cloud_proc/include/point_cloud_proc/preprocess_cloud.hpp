@@ -24,11 +24,12 @@ private:
   void filter_callback(sensor_msgs::msg::PointCloud2::SharedPtr);
 
   void range_based_filtering(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud,
-                                            pcl::PointCloud<pcl::PointXYZI>::Ptr filter_cloud);
+                             pcl::PointCloud<pcl::PointXYZI>::Ptr filter_cloud);
 
-  void voxel_downsample(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud,
-                                       pcl::PointCloud<pcl::PointXYZI>::Ptr out);
+  void voxel_downsample(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr out);
 
+  void plane_segment(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr plane_cloud,
+                     pcl::PointCloud<pcl::PointXYZI>::Ptr nonplane_cloud);
 
   void setup_parameters();
 
@@ -40,5 +41,4 @@ private:
 
   bool _voxel_downsampling;
   double _voxel_x, _voxel_y, _voxel_z;
-
 };

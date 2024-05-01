@@ -2,7 +2,7 @@ preprocess_cloud_node:
   ros__parameters:
     range_based_filtering:
       active: True
-      range: 100.0
+      range: 500.0
     angle_based_filtering:
       active: False
       range: 10.0
@@ -11,4 +11,11 @@ preprocess_cloud_node:
       voxel_x: 0.2
       voxel_y: 0.2
       voxel_z: 0.2
-
+plane_segmentation_node:
+  ros__parameters:
+    plane_segmentation:
+      active: True
+      distance_threshold: 0.1
+    clip_ground:
+      active: False
+      height: 0.0

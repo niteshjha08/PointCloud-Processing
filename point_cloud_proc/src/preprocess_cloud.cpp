@@ -113,6 +113,7 @@ void PreprocessCloud::filter_callback(sensor_msgs::msg::PointCloud2::SharedPtr m
     voxel_downsample(filtered_cloud, cloud);
     cloud = filtered_cloud;
   }
+
   // Publish the filtered cloud
   sensor_msgs::msg::PointCloud2 out_msg;
 
