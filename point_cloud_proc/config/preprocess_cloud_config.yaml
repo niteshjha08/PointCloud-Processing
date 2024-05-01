@@ -1,0 +1,14 @@
+preprocess_cloud_node:
+  ros__parameters:
+    range_based_filtering:
+      active: True
+      range: 100.0
+    angle_based_filtering:
+      active: False
+      range: 10.0
+    voxel_downsampling:
+      active: True
+      voxel_x: 0.2
+      voxel_y: 0.2
+      voxel_z: 0.2
+

@@ -8,12 +8,12 @@
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/conversions.h>
 #include <pcl/filters/extract_indices.h>
-// #include <pcl_ros/transforms.h>
+#include <pcl/filters/voxel_grid.h>
 
-class FilterCloud : public rclcpp::Node
+class PreprocessCloud : public rclcpp::Node
 {
 public:
-  FilterCloud();
+  PreprocessCloud();
 
 private:
   // subscriber of raw point cloud
@@ -23,15 +23,22 @@ private:
   // filter callback function
   void filter_callback(sensor_msgs::msg::PointCloud2::SharedPtr);
 
-  void range_based_filtering(pcl::PointCloud<pcl::PointXYZI>::Ptr);
+  void range_based_filtering(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud,
+                                            pcl::PointCloud<pcl::PointXYZI>::Ptr filter_cloud);
+
+  void voxel_downsample(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud,
+                                       pcl::PointCloud<pcl::PointXYZI>::Ptr out);
+
 
   void setup_parameters();
 
   bool _range_based_filtering;
-
-  bool _angle_based_filtering;
-
   double _range_limit;
 
+  bool _angle_based_filtering;
   double _angle_range_limit;
+
+  bool _voxel_downsampling;
+  double _voxel_x, _voxel_y, _voxel_z;
+
 };

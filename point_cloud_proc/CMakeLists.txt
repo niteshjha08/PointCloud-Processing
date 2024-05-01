@@ -26,12 +26,12 @@ install(
 
 include_directories(include/point_cloud_proc)
 
-add_executable(filter_cloud_node src/filter_cloud.cpp)
-target_include_directories(filter_cloud_node PUBLIC
+add_executable(preprocess_cloud_node src/preprocess_cloud.cpp)
+target_include_directories(preprocess_cloud_node PUBLIC
   include
 )
 ament_target_dependencies(
-  filter_cloud_node
+  preprocess_cloud_node
   rclcpp
   sensor_msgs
   pcl_conversions
@@ -41,11 +41,11 @@ ament_target_dependencies(
 
 install(
   TARGETS
-    filter_cloud_node
+  preprocess_cloud_node
   DESTINATION
     lib/${PROJECT_NAME}
   )
-target_link_libraries(filter_cloud_node ${PCL_LIBRARIES})
+target_link_libraries(preprocess_cloud_node ${PCL_LIBRARIES})
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

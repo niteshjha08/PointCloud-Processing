@@ -15,13 +15,13 @@ def generate_launch_description():
     config_filter_node = os.path.join(
         get_package_share_directory('point_cloud_proc'),
         'config',
-        'filter_cloud_config.yaml'
+        'preprocess_cloud_config.yaml'
         )
     # launch rviz2
     filter_cloud_node = Node(package='point_cloud_proc',
          namespace='',
-         executable='filter_cloud_node',
-         name='filter_cloud',
+         executable='preprocess_cloud_node',
+         name='preprocess_cloud_node',
          parameters=[config_filter_node])
     ld = LaunchDescription()
 
