@@ -1,3 +1,4 @@
+#include <iostream>
 #include <plane_segmentation.hpp>
 using std::placeholders::_1;
 
@@ -11,6 +12,22 @@ PlaneSegmentation::PlaneSegmentation() : rclcpp::Node("plane_segmentation")
 
     _plane_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("/plane_cloud", 10);
     _nonplane_cloud_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("/nonplane_cloud", 10);
+  }
+
+  tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+  // Assuming vehicle -> LiDAR is static, lookup only once
+  try
+  {
+    _lidar_to_body_transform = tf_buffer_->lookupTransform(_vehicle_body_frame, _lidar_frame, tf2::TimePointZero,
+                                                           std::chrono::milliseconds(2000));
+  }
+  catch (const tf2::TransformException& ex)
+  {
+    RCLCPP_INFO_STREAM(this->get_logger(),
+                       "Could not transform " << _vehicle_body_frame << " to " << _lidar_frame << ex.what());
+    RCLCPP_INFO_STREAM(this->get_logger(), "Turning off groung clipping ");
+    _clip_ground = false;
   }
   RCLCPP_INFO_STREAM(this->get_logger(), "Initialized node");
 }
@@ -31,12 +48,19 @@ void PlaneSegmentation::setup_parameters()
   this->get_parameter("clip_ground.active", _clip_ground);
   RCLCPP_INFO_STREAM(this->get_logger(), "Using parameter: 'clip_ground.active' = " << _clip_ground);
 
-  if (_plane_segmentation)
+  if (_clip_ground)
   {
     this->declare_parameter("clip_ground.height", 0.05);
     this->get_parameter("clip_ground.height", _clip_height);
     RCLCPP_INFO_STREAM(this->get_logger(), "Using parameter: 'clip_ground.height' = " << _clip_height);
   }
+  this->declare_parameter("vehicle_body_frame", "");
+  this->get_parameter("vehicle_body_frame", _vehicle_body_frame);
+  RCLCPP_INFO_STREAM(this->get_logger(), "Using parameter: 'vehicle_body_frame' = " << _vehicle_body_frame);
+
+  this->declare_parameter("lidar_frame", "");
+  this->get_parameter("lidar_frame", _lidar_frame);
+  RCLCPP_INFO_STREAM(this->get_logger(), "Using parameter: 'lidar_frame' = " << _lidar_frame);
 }
 
 void PlaneSegmentation::clip_upto_height(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud,
@@ -46,10 +70,15 @@ void PlaneSegmentation::clip_upto_height(pcl::PointCloud<pcl::PointXYZI>::Ptr cl
 
   for (unsigned int i = 0; i < cloud->points.size(); ++i)
   {
-    // This clipping is w.r.t lidar frame which is on top of vehicle. 
-    // TODO: Find the transform and then clip
     auto point = cloud->points[i];
-    if (point.z < _clip_height)
+    geometry_msgs::msg::Point input_pt, output_pt;
+    input_pt.x = point.x;
+    input_pt.y = point.y;
+    input_pt.z = point.z;
+
+    tf2::doTransform(input_pt, output_pt, _lidar_to_body_transform);
+    // transform point to body frame
+    if (output_pt.z < _clip_height)
     {
       clip_inliers->indices.push_back(i);
     }
@@ -77,8 +106,6 @@ void PlaneSegmentation::plane_segment(sensor_msgs::msg::PointCloud2::SharedPtr c
 
   seg.setInputCloud(cloud);
   seg.segment(*inliers, *coefficients);
-    RCLCPP_INFO_STREAM(this->get_logger(), "Model coefficients = " << coefficients->values.size());
-
 
   pcl::ExtractIndices<pcl::PointXYZI> extract;
   extract.setInputCloud(cloud);

@@ -28,9 +28,6 @@ private:
 
   void voxel_downsample(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr out);
 
-  void plane_segment(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud, pcl::PointCloud<pcl::PointXYZI>::Ptr plane_cloud,
-                     pcl::PointCloud<pcl::PointXYZI>::Ptr nonplane_cloud);
-
   void setup_parameters();
 
   bool _range_based_filtering;

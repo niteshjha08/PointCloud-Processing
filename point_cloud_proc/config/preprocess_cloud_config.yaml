@@ -17,5 +17,7 @@ plane_segmentation_node:
       active: True
       distance_threshold: 0.1
     clip_ground:
-      active: False
-      height: 0.0
+      active: True
+      height: 0.2
+    vehicle_body_frame: "ego_vehicle"
+    lidar_frame: "ego_vehicle/lidar"
