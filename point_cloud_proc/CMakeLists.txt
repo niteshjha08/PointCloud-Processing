@@ -13,7 +13,10 @@ find_package(rclpy REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(PCL REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
 
 # uncomment the following section in order to fill in
@@ -37,6 +40,12 @@ add_executable(plane_segmentation_node src/plane_segmentation.cpp)
 target_include_directories(plane_segmentation_node PUBLIC
   include
 )
+
+add_executable(clustering_node src/clustering.cpp)
+target_include_directories(clustering_node PUBLIC
+  include
+)
+
 ament_target_dependencies(
   preprocess_cloud_node
   rclcpp
@@ -57,14 +66,33 @@ ament_target_dependencies(
   # pcl_ros
 )
 
+ament_target_dependencies(
+  clustering_node
+  rclcpp
+  sensor_msgs
+  pcl_conversions
+  PCL
+  tf2_ros
+  tf2_geometry_msgs
+  # pcl_ros
+)
+
 install(
   TARGETS
-  preprocess_cloud_node plane_segmentation_node
+  preprocess_cloud_node plane_segmentation_node clustering_node
   DESTINATION
     lib/${PROJECT_NAME}
   )
 target_link_libraries(preprocess_cloud_node ${PCL_LIBRARIES})
 target_link_libraries(plane_segmentation_node ${PCL_LIBRARIES})
+target_link_libraries(clustering_node ${PCL_LIBRARIES})
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/ArrayPointCloud.msg"
+  DEPENDENCIES std_msgs sensor_msgs
+)
+ament_export_dependencies(rosidl_default_runtime)
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(clustering_node "${cpp_typesupport_target}") 
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -77,5 +105,7 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+
 
 ament_package()

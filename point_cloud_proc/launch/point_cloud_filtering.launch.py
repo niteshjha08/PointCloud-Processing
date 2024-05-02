@@ -29,10 +29,16 @@ def generate_launch_description():
          executable='plane_segmentation_node',
          name='plane_segmentation_node',
          parameters=[config_filter_node])
+    clustering_node = Node(package='point_cloud_proc',
+         namespace='',
+         executable='clustering_node',
+         name='clustering_node')
     ld = LaunchDescription()
 
     ld.add_action(filter_cloud_node)
     ld.add_action(plane_segmentation_node)
+    ld.add_action(clustering_node)
+
 
 
 
