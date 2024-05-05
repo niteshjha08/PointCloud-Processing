@@ -32,7 +32,8 @@ def generate_launch_description():
     clustering_node = Node(package='point_cloud_proc',
          namespace='',
          executable='clustering_node',
-         name='clustering_node')
+         name='clustering_node',
+         parameters=[config_filter_node])
     ld = LaunchDescription()
 
     ld.add_action(filter_cloud_node)

@@ -8,9 +8,9 @@ preprocess_cloud_node:
       range: 10.0
     voxel_downsampling:
       active: True
-      voxel_x: 0.2
-      voxel_y: 0.2
-      voxel_z: 0.2
+      voxel_x: 0.05
+      voxel_y: 0.05
+      voxel_z: 0.05
 plane_segmentation_node:
   ros__parameters:
     plane_segmentation:
@@ -21,3 +21,11 @@ plane_segmentation_node:
       height: 0.2
     vehicle_body_frame: "ego_vehicle"
     lidar_frame: "ego_vehicle/lidar"
+clustering_node:
+  ros__parameters:
+    cluster_method: "euclidean"
+    visualize_cluster: True
+    euclidean_clustering:
+      cluster_tolerance: 0.5
+      min_cluster_size: 30
+      max_cluster_size: 30000

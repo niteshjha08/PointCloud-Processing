@@ -17,6 +17,9 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(Eigen REQUIRED)
+
 
 
 # uncomment the following section in order to fill in
@@ -43,7 +46,7 @@ target_include_directories(plane_segmentation_node PUBLIC
 
 add_executable(clustering_node src/clustering.cpp)
 target_include_directories(clustering_node PUBLIC
-  include
+  include src
 )
 
 ament_target_dependencies(
@@ -74,6 +77,8 @@ ament_target_dependencies(
   PCL
   tf2_ros
   tf2_geometry_msgs
+  Eigen
+  visualization_msgs
   # pcl_ros
 )
 
@@ -85,7 +90,7 @@ install(
   )
 target_link_libraries(preprocess_cloud_node ${PCL_LIBRARIES})
 target_link_libraries(plane_segmentation_node ${PCL_LIBRARIES})
-target_link_libraries(clustering_node ${PCL_LIBRARIES})
+target_link_libraries(clustering_node ${PCL_LIBRARIES} ${Eigen_LIBRARIES})
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ArrayPointCloud.msg"
   DEPENDENCIES std_msgs sensor_msgs
