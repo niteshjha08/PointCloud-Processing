@@ -18,13 +18,22 @@ Clustering::Clustering() : rclcpp::Node("clustering")
 
   _cluster_clouds_pub = this->create_publisher<point_cloud_proc::msg::ArrayPointCloud>("/cluster_clouds", 10);
 
+  _visualize_callback_group = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+  rclcpp::SubscriptionOptions options1;
+  options1.callback_group = _visualize_callback_group;
+  // _bounding_box_sub = this->create_subscription<point_cloud_proc::msg::ArrayPointCloud>(
+  //     "/cluster_clouds", 10, std::bind(&Clustering::publish_bounding_boxes, this, _1), options1);
+
   _clusters_visualization_sub = this->create_subscription<point_cloud_proc::msg::ArrayPointCloud>(
       "/cluster_clouds", 10, std::bind(&Clustering::visualize_clusters, this, _1));
 
   _cluster_visualization_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cluster_visualization", 10);
 
+  _bounding_box_calc_callback_group = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
+  rclcpp::SubscriptionOptions options;
+  options.callback_group = _bounding_box_calc_callback_group;
   _bounding_box_sub = this->create_subscription<point_cloud_proc::msg::ArrayPointCloud>(
-      "/cluster_clouds", 10, std::bind(&Clustering::publish_bounding_boxes, this, _1));
+      "/cluster_clouds", 10, std::bind(&Clustering::publish_bounding_boxes, this, _1), options1);
 
   _bounding_box_pub = this->create_publisher<visualization_msgs::msg::MarkerArray>("/cluster_bounding_boxes", 10);
 
@@ -95,33 +104,15 @@ void Clustering::publish_bounding_boxes(point_cloud_proc::msg::ArrayPointCloud::
 {
   int i = 0;
   auto marker_array = visualization_msgs::msg::MarkerArray();
+
   for (auto cluster : clusters_msg->clouds)
   {
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
     pcl::fromROSMsg(cluster, *cloud);
-    Bbox bbox = get_cluster_bounding_box(cloud);
-    auto marker = visualization_msgs::msg::Marker();
+    Eigen::MatrixXd bbox = get_cluster_bounding_box(cloud);
+
+    auto marker = get_bounding_box_marker(bbox);
     marker.id = i;
-    marker.type = visualization_msgs::msg::Marker::CUBE;
-    marker.action = visualization_msgs::msg::Marker::ADD;
-
-    // Set the position and size of the cube (bounding box)
-    marker.pose.position.x = (bbox.x_min + bbox.x_max) / 2.0;
-    marker.pose.position.y = (bbox.y_min + bbox.y_max) / 2.0;
-    marker.pose.position.z = (bbox.z_min + bbox.z_max) / 2.0;
-    marker.pose.orientation.x = 0.0;
-    marker.pose.orientation.y = 0.0;
-    marker.pose.orientation.z = 0.0;
-    marker.pose.orientation.w = 1.0;
-    marker.scale.x = bbox.x_max - bbox.x_min;
-    marker.scale.y = bbox.y_max - bbox.y_min;
-    marker.scale.z = bbox.z_max - bbox.z_min;
-
-    // Set the color (green)
-    marker.color.r = 0.0f;
-    marker.color.g = 1.0f;
-    marker.color.b = 0.0f;
-    marker.color.a = 1.0f;
     marker.header = clusters_msg->header;
     marker_array.markers.push_back(marker);
     i += 1;
@@ -129,7 +120,7 @@ void Clustering::publish_bounding_boxes(point_cloud_proc::msg::ArrayPointCloud::
   _bounding_box_pub->publish(marker_array);
 }
 
-Clustering::Bbox Clustering::get_cluster_bounding_box(pcl::PointCloud<pcl::PointXYZI>::Ptr cluster)
+Eigen::MatrixXd Clustering::get_cluster_bounding_box(pcl::PointCloud<pcl::PointXYZI>::Ptr cluster)
 {
   Eigen::Matrix<double, Eigen::Dynamic, 2> cluster_points(cluster->points.size(), 2);
   Eigen::Vector<double, Eigen::Dynamic> z_coordinates(cluster->points.size());
@@ -140,40 +131,52 @@ Clustering::Bbox Clustering::get_cluster_bounding_box(pcl::PointCloud<pcl::Point
     z_coordinates(i) = cluster->points[i].z;
   }
 
-  Eigen::MatrixXd centered = cluster_points.colwise() - cluster_points.rowwise().mean();
+  Eigen::MatrixXd centered = cluster_points.rowwise() - cluster_points.colwise().mean();
 
-  Eigen::MatrixXd cov = (centered * centered.adjoint()) / double(cluster_points.cols() - 1);
+  Eigen::MatrixXd cov = (centered.transpose() * centered.transpose().adjoint()) / double(cluster_points.rows());
 
-  Eigen::EigenSolver<Eigen::MatrixXd> es(cov);
+  Eigen::Matrix2d eigvecs = find_eigenvectors_2d(cov);
 
-  Eigen::MatrixXd aligned_coords = es.eigenvectors().real().transpose() * centered;
+  Eigen::MatrixXd aligned_coords = centered * eigvecs;
 
   Eigen::Vector2d min_xy = aligned_coords.colwise().minCoeff();
 
   Eigen::Vector2d max_xy = aligned_coords.colwise().maxCoeff();
   Eigen::Vector2d z_extremes;
-
   z_extremes << z_coordinates.minCoeff(), z_coordinates.maxCoeff();
 
-  Bbox bbox;
-  bbox.x_max = max_xy[0];
-  bbox.x_min = min_xy[0];
-  bbox.y_max = max_xy[1];
-  bbox.y_min = min_xy[1];
-  bbox.z_max = z_extremes[1];
-  bbox.z_min = z_extremes[0];
-  RCLCPP_INFO_STREAM(this->get_logger(), "Done: ");
+  Eigen::MatrixXd bounding_box_coords(8, 2);
 
-  return bbox;
+  bounding_box_coords.row(0) = Eigen::RowVector2d(min_xy[0], min_xy[1]);
+  bounding_box_coords.row(1) = Eigen::RowVector2d(min_xy[0], max_xy[1]);
+  bounding_box_coords.row(2) = Eigen::RowVector2d(max_xy[0], max_xy[1]);
+  bounding_box_coords.row(3) = Eigen::RowVector2d(max_xy[0], min_xy[1]);
+  bounding_box_coords.row(4) = Eigen::RowVector2d(min_xy[0], min_xy[1]);
+  bounding_box_coords.row(5) = Eigen::RowVector2d(min_xy[0], max_xy[1]);
+  bounding_box_coords.row(6) = Eigen::RowVector2d(max_xy[0], max_xy[1]);
+  bounding_box_coords.row(7) = Eigen::RowVector2d(max_xy[0], min_xy[1]);
+  Eigen::MatrixXd bounding_box_coords_with_z(8, 3);
+  Eigen::VectorXd z_coords(8);
+  z_coords << z_extremes[0], z_extremes[0], z_extremes[0], z_extremes[0], z_extremes[1], z_extremes[1], z_extremes[1],
+      z_extremes[1];
+
+  bounding_box_coords = (eigvecs * bounding_box_coords.transpose()).transpose();
+
+  bounding_box_coords = bounding_box_coords.rowwise() + cluster_points.colwise().mean();
+  bounding_box_coords_with_z.block(0, 0, 8, 2) = bounding_box_coords;
+  bounding_box_coords_with_z.col(2) = z_coords;
+
+  return bounding_box_coords_with_z;
 }
 
 void Clustering::visualize_clusters(point_cloud_proc::msg::ArrayPointCloud::SharedPtr clusters_msg)
 {
   pcl::PointCloud<pcl::PointXYZRGB> aggregate_cloud;
   int num_clouds = clusters_msg->clouds.size();
-  RCLCPP_INFO_STREAM(this->get_logger(), "Number of clusters for visualization: " << num_clouds);
   if (num_clouds == 0)
+  {
     return;
+  }
   std::vector<std::vector<int>> cluster_colors = get_cluster_colors(num_clouds);
   int cluster_idx = 0;
   for (auto cluster_ros : clusters_msg->clouds)
@@ -181,8 +184,6 @@ void Clustering::visualize_clusters(point_cloud_proc::msg::ArrayPointCloud::Shar
     pcl::PointCloud<pcl::PointXYZI> cluster;
     pcl::fromROSMsg(cluster_ros, cluster);
     std::vector<int> colors = cluster_colors[cluster_idx];
-    RCLCPP_INFO_STREAM(this->get_logger(),
-                       "Cluster: " << cluster_idx << " color: " << colors[0] << "," << colors[1] << "," << colors[2]);
 
     for (auto point : cluster)
     {

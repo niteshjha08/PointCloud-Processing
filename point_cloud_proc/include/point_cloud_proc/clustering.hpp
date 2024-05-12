@@ -11,6 +11,7 @@
 #include <Eigen/Dense>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <visualization_msgs/msg/marker.hpp>
+// #include <rclcpp/callback_group.hpp>
 // #include <msg/ArrayPointCloud.msg>
 class Clustering : public rclcpp::Node
 {
@@ -40,6 +41,8 @@ private:
 
   void setup_parameters();
 
+  rclcpp::CallbackGroup::SharedPtr _bounding_box_calc_callback_group, _visualize_callback_group;
+
   std::string _cluster_method;
   double _cluster_tolerance;
   int _min_cluster_size, _max_cluster_size;
@@ -47,5 +50,5 @@ private:
 
   struct Bbox;
 
-  Bbox get_cluster_bounding_box(pcl::PointCloud<pcl::PointXYZI>::Ptr cluster);
+  Eigen::MatrixXd get_cluster_bounding_box(pcl::PointCloud<pcl::PointXYZI>::Ptr cluster);
 };
