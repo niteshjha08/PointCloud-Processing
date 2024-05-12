@@ -1,33 +1,11 @@
-/*
-def gen_colors(num_clusters):
-    colors = []
-    color_delta = 768//num_clusters
-    for i in range(num_clusters):
-        total_color_val = (i+1)*color_delta
-        r, g, b = 0, 0, 0
-        while(total_color_val>0):
-            delta_r = min(255-r, min(total_color_val,color_delta))
-            total_color_val -= delta_r
-            r+=delta_r
-            if r >= 255:
-                break
-        while(total_color_val>0):
-            delta_g = min(255-g, min(total_color_val,color_delta))
-            total_color_val -= delta_g
-            g+=delta_g
-            if g >= 255:
-                break
-        while(total_color_val>0):
-            delta_b = min(255-b, min(total_color_val,color_delta))
-            total_color_val -= delta_b
-            b+=delta_b
-            if b >= 255:
-                break
-        colors.append([r,g,b])
-    return colors
-*/
 #ifndef UTILS_H
+#include <Eigen/Dense>
 #include <vector>
+#include <visualization_msgs/msg/marker.hpp>
+#include <vision_msgs/msg/bounding_box3_d.hpp>
+#include "point_cloud_proc/msg/custom_bounding_box3_d.hpp"
+#include "point_cloud_proc/msg/custom_bounding_boxes3_d.hpp"
+
 std::vector<std::vector<int>> get_cluster_colors(int num_clusters)
 {
   std::vector<std::vector<int>> colors;
@@ -198,6 +176,72 @@ visualization_msgs::msg::Marker get_bounding_box_marker(Eigen::MatrixXd bbox)
   marker.points.push_back(p7);
   marker.points.push_back(p2);
   marker.points.push_back(p6);
+  return marker;
+}
+
+point_cloud_proc::msg::CustomBoundingBox3D matrix_to_bbox(Eigen::MatrixXd bbox)
+{
+  point_cloud_proc::msg::CustomBoundingBox3D bounding_box;
+  geometry_msgs::msg::Point p1, p2, p3, p4, p5, p6, p7, p8;
+  p1.x = bbox(0, 0);
+  p1.y = bbox(0, 0);
+  p1.z = bbox(0, 0);
+
+  p2.x = bbox(1, 0);
+  p2.y = bbox(1, 0);
+  p2.z = bbox(1, 0);
+
+  p3.x = bbox(2, 0);
+  p3.y = bbox(2, 0);
+  p3.z = bbox(2, 0);
+
+  p4.x = bbox(3, 0);
+  p4.y = bbox(3, 0);
+  p4.z = bbox(3, 0);
+
+  p5.x = bbox(4, 0);
+  p5.y = bbox(4, 0);
+  p5.z = bbox(4, 0);
+
+  p6.x = bbox(5, 0);
+  p6.y = bbox(5, 0);
+  p6.z = bbox(5, 0);
+
+  p7.x = bbox(6, 0);
+  p7.y = bbox(6, 0);
+  p7.z = bbox(6, 0);
+
+  p8.x = bbox(7, 0);
+  p8.y = bbox(7, 0);
+  p8.z = bbox(7, 0);
+  bounding_box.box.push_back(p1);
+  bounding_box.box.push_back(p2);
+  bounding_box.box.push_back(p3);
+  bounding_box.box.push_back(p4);
+  bounding_box.box.push_back(p5);
+  bounding_box.box.push_back(p6);
+  bounding_box.box.push_back(p7);
+  bounding_box.box.push_back(p8);
+  return bounding_box;
+}
+
+visualization_msgs::msg::Marker get_bbox_cube(vision_msgs::msg::BoundingBox3D bbox)
+{
+  auto marker = visualization_msgs::msg::Marker();
+
+  marker.type = visualization_msgs::msg::Marker::CUBE;
+  marker.action = visualization_msgs::msg::Marker::ADD;
+  marker.scale.x = bbox.size.x;
+  marker.scale.y = bbox.size.y;
+  marker.scale.z = bbox.size.z;
+
+  marker.pose.position = bbox.center.position;
+  marker.pose.orientation = bbox.center.orientation;
+
+  marker.color.r = 1.0;
+  marker.color.g = 1.0;
+  marker.color.b = 0.0;
+  marker.color.a = 0.2;
   return marker;
 }
 

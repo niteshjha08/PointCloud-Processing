@@ -18,31 +18,25 @@ Clustering::Clustering() : rclcpp::Node("clustering")
 
   _cluster_clouds_pub = this->create_publisher<point_cloud_proc::msg::ArrayPointCloud>("/cluster_clouds", 10);
 
-  _visualize_callback_group = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
-  rclcpp::SubscriptionOptions options1;
-  options1.callback_group = _visualize_callback_group;
-  // _bounding_box_sub = this->create_subscription<point_cloud_proc::msg::ArrayPointCloud>(
-  //     "/cluster_clouds", 10, std::bind(&Clustering::publish_bounding_boxes, this, _1), options1);
-
   _clusters_visualization_sub = this->create_subscription<point_cloud_proc::msg::ArrayPointCloud>(
       "/cluster_clouds", 10, std::bind(&Clustering::visualize_clusters, this, _1));
 
   _cluster_visualization_pub = this->create_publisher<sensor_msgs::msg::PointCloud2>("/cluster_visualization", 10);
 
-  _bounding_box_calc_callback_group = this->create_callback_group(rclcpp::CallbackGroupType::Reentrant);
-  rclcpp::SubscriptionOptions options;
-  options.callback_group = _bounding_box_calc_callback_group;
   _bounding_box_sub = this->create_subscription<point_cloud_proc::msg::ArrayPointCloud>(
-      "/cluster_clouds", 10, std::bind(&Clustering::publish_bounding_boxes, this, _1), options1);
+      "/cluster_clouds", 10, std::bind(&Clustering::get_bounding_boxes, this, _1));
 
-  _bounding_box_pub = this->create_publisher<visualization_msgs::msg::MarkerArray>("/cluster_bounding_boxes", 10);
+  _bounding_box_viz_pub =
+      this->create_publisher<visualization_msgs::msg::MarkerArray>("/cluster_bounding_boxes_viz", 10);
+
+  _bounding_box_pub =
+      this->create_publisher<point_cloud_proc::msg::CustomBoundingBoxes3D>("/cluster_bounding_boxes", 10);
 
   setup_parameters();
 }
 
 void Clustering::cluster_callback(sensor_msgs::msg::PointCloud2::SharedPtr cloud_msg)
 {
-  // RCLCPP_INFO_STREAM(this->get_logger(), "starting clustering");
   pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
   pcl::fromROSMsg(*cloud_msg, *cloud);
 
@@ -100,24 +94,30 @@ void Clustering::euclidean_clustering(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud
   }
 }
 
-void Clustering::publish_bounding_boxes(point_cloud_proc::msg::ArrayPointCloud::SharedPtr clusters_msg)
+void Clustering::get_bounding_boxes(point_cloud_proc::msg::ArrayPointCloud::SharedPtr clusters_msg)
 {
   int i = 0;
   auto marker_array = visualization_msgs::msg::MarkerArray();
-
+  point_cloud_proc::msg::CustomBoundingBoxes3D bounding_boxes;
   for (auto cluster : clusters_msg->clouds)
   {
     pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>);
     pcl::fromROSMsg(cluster, *cloud);
     Eigen::MatrixXd bbox = get_cluster_bounding_box(cloud);
 
+    point_cloud_proc::msg::CustomBoundingBox3D bounding_box = matrix_to_bbox(bbox);
+
     auto marker = get_bounding_box_marker(bbox);
     marker.id = i;
     marker.header = clusters_msg->header;
     marker_array.markers.push_back(marker);
+
+    bounding_boxes.header = clusters_msg->header;
+    bounding_boxes.boxes.push_back(bounding_box);
     i += 1;
   }
-  _bounding_box_pub->publish(marker_array);
+  _bounding_box_viz_pub->publish(marker_array);
+  _bounding_box_pub->publish(bounding_boxes);
 }
 
 Eigen::MatrixXd Clustering::get_cluster_bounding_box(pcl::PointCloud<pcl::PointXYZI>::Ptr cluster)

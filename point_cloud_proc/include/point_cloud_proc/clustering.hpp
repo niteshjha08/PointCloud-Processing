@@ -7,10 +7,13 @@
 #include <pcl/segmentation/extract_clusters.h>
 // #include "point_cloud_proc/ArrayPointCloud.msg"
 #include "point_cloud_proc/msg/array_point_cloud.hpp"
+#include "point_cloud_proc/msg/custom_bounding_box3_d.hpp"
+#include "point_cloud_proc/msg/custom_bounding_boxes3_d.hpp"
 #include <string>
 #include <Eigen/Dense>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <visualization_msgs/msg/marker.hpp>
+#include <vision_msgs/msg/bounding_box3_d.hpp>
 // #include <rclcpp/callback_group.hpp>
 // #include <msg/ArrayPointCloud.msg>
 class Clustering : public rclcpp::Node
@@ -25,8 +28,9 @@ private:
 
   rclcpp::Publisher<point_cloud_proc::msg::ArrayPointCloud>::SharedPtr _cluster_clouds_pub;
 
-  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr _bounding_box_pub;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr _bounding_box_viz_pub;
 
+  rclcpp::Publisher<point_cloud_proc::msg::CustomBoundingBoxes3D>::SharedPtr _bounding_box_pub;
 
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr _cluster_visualization_pub;
 
@@ -37,7 +41,7 @@ private:
 
   void visualize_clusters(point_cloud_proc::msg::ArrayPointCloud::SharedPtr clusters_msg);
 
-  void publish_bounding_boxes(point_cloud_proc::msg::ArrayPointCloud::SharedPtr clusters_msg);
+  void get_bounding_boxes(point_cloud_proc::msg::ArrayPointCloud::SharedPtr clusters_msg);
 
   void setup_parameters();
 
